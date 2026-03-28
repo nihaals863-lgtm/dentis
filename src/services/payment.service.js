@@ -1,6 +1,19 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+// Helper to map frontend payment methods to Prisma enums
+const mapPaymentMethod = (method) => {
+  if (!method) return 'CASH';
+  const m = method.toUpperCase();
+  if (m === 'CARD') return 'CREDIT_CARD';
+  if (m === 'CASH') return 'CASH';
+  if (m === 'CHEQUE') return 'CHEQUE';
+  if (m.includes('BANK') || m.includes('TRANSFER')) return 'BANK_TRANSFER';
+  if (m === 'ONLINE') return 'ONLINE';
+  // Standardize other strings like "Bank Transfer"
+  return m.replace(/\s+/g, '_');
+};
+
 const createPayment = async (paymentData) => {
   const { expenseId, labCaseId, amount, paymentDate, paymentMethod, referenceNumber, notes, paymentType } = paymentData;
 
@@ -9,7 +22,7 @@ const createPayment = async (paymentData) => {
       paymentType,
       amount,
       paymentDate: new Date(paymentDate),
-      paymentMethod,
+      paymentMethod: mapPaymentMethod(paymentMethod),
       referenceNumber,
       notes,
       ...(expenseId && { expense: { connect: { id: parseInt(expenseId) } } }),
@@ -57,7 +70,7 @@ const processedBatchPayments = async (batchData) => {
             paymentType: 'LABCASE_PAYMENT',
             amount: amountPerCase,
             paymentDate: new Date(),
-            paymentMethod: method ? method.toUpperCase().replace(/\s+/g, '_') : 'CASH',
+            paymentMethod: mapPaymentMethod(method),
             notes: notes || 'Batch payment',
             labCase: { connect: { id: parseInt(id) } },
           },

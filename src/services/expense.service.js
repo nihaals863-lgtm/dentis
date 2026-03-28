@@ -1,6 +1,18 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+// Helper to map frontend payment methods to Prisma enums
+const mapPaymentMethod = (method) => {
+  if (!method) return 'CASH';
+  const m = method.toUpperCase();
+  if (m === 'CARD') return 'CREDIT_CARD';
+  if (m === 'CASH') return 'CASH';
+  if (m === 'CHEQUE') return 'CHEQUE';
+  if (m.includes('BANK') || m.includes('TRANSFER')) return 'BANK_TRANSFER';
+  if (m === 'ONLINE') return 'ONLINE';
+  return 'CASH';
+};
+
 const getAllExpenses = async () => {
   return await prisma.expense.findMany({
     include: { vendor: true, payments: true, documents: true },
@@ -89,7 +101,7 @@ const processBatchPayment = async (payload) => {
         expenseId: expense.id,
         amount: amountPerExpense,
         paymentDate: new Date(),
-        paymentMethod: method.toUpperCase().replace(' ', '_'),
+        paymentMethod: mapPaymentMethod(method),
         notes: notes,
         status: 'PAID'
       }

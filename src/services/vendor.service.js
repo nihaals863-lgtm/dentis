@@ -51,9 +51,16 @@ const updateVendor = async (id, vendorData) => {
 };
 
 const deleteVendor = async (id) => {
-  return await prisma.vendor.delete({
-    where: { id: parseInt(id) },
-  });
+  try {
+    return await prisma.vendor.delete({
+      where: { id: parseInt(id) },
+    });
+  } catch (error) {
+    if (error.code === 'P2003') {
+      throw new Error('Cannot delete this vendor because they are linked to existing expenses or documents. Please archive them instead.');
+    }
+    throw error;
+  }
 };
 
 const importVendors = async (vendorsData) => {
