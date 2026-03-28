@@ -56,10 +56,29 @@ const deleteVendor = async (id) => {
   });
 };
 
+const importVendors = async (vendorsData) => {
+  const data = vendorsData.map(v => ({
+    name: v.name || v.Name || 'Unknown Vendor',
+    contactName: v.contactName || v.contactPerson || v["Contact Person"] || '',
+    phone: v.phone || v.Phone || '',
+    email: v.email || v.Email || '',
+    address: v.address || v.Address || '',
+    categories: Array.isArray(v.categories) ? v.categories.join(',') : (v.categories || v.Category || ''),
+    notes: v.notes || '',
+    isActive: true
+  }));
+
+  return await prisma.vendor.createMany({
+    data,
+    skipDuplicates: true
+  });
+};
+
 module.exports = {
   getAllVendors,
   getVendorById,
   createVendor,
   updateVendor,
   deleteVendor,
+  importVendors,
 };

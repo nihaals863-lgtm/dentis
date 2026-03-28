@@ -83,7 +83,7 @@ const processBatchPayment = async (payload) => {
     }
 
     // Create Payment Record
-    await prisma.payment.create({
+    const payment = await prisma.payment.create({
       data: {
         paymentType: 'EXPENSE_PAYMENT',
         expenseId: expense.id,
@@ -96,7 +96,7 @@ const processBatchPayment = async (payload) => {
     });
 
     // Update Expense
-    return await prisma.expense.update({
+    await prisma.expense.update({
       where: { id: expense.id },
       data: {
         amountPaid: newAmountPaid,
@@ -104,6 +104,8 @@ const processBatchPayment = async (payload) => {
         status: status
       }
     });
+
+    return payment;
   }));
 
   return results.filter(Boolean);

@@ -166,8 +166,9 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  employee  Employee?
-  reminders Reminder[]
+  employee          Employee?
+  createdReminders  Reminder[] @relation("CreatedReminders")
+  receivedReminders Reminder[] @relation("ReceivedReminders")
 
   @@map("users")
 }
@@ -440,6 +441,7 @@ model LeaveBalance {
 model Reminder {
   id            Int          @id @default(autoincrement())
   userId        Int          @map("user_id")
+  targetUserId  Int?         @map("target_user_id")
   reminderType  ReminderType @default(GENERAL) @map("reminder_type")
   title         String       @db.VarChar(200)
   body          String?      @db.Text
@@ -455,7 +457,8 @@ model Reminder {
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id])
+  creator    User  @relation("CreatedReminders", fields: [userId], references: [id])
+  recipient  User? @relation("ReceivedReminders", fields: [targetUserId], references: [id])
 
   @@map("reminders")
 }

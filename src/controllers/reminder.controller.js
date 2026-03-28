@@ -14,8 +14,19 @@ const createReminder = async (req, res, next) => {
 
 const getMyReminders = async (req, res, next) => {
   try {
-    const reminders = await reminderService.getReminders(req.user.id);
+    const role = req.user.role?.name?.toLowerCase();
+    const reminders = await reminderService.getReminders(req.user.id, role);
     res.json(reminders);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getNotifications = async (req, res, next) => {
+  try {
+    const role = req.user.role?.name?.toLowerCase();
+    const notifications = await reminderService.getActiveNotifications(req.user.id, role);
+    res.json(notifications);
   } catch (error) {
     next(error);
   }
@@ -42,6 +53,7 @@ const deleteReminder = async (req, res, next) => {
 module.exports = {
   createReminder,
   getMyReminders,
+  getNotifications,
   updateReminder,
   deleteReminder,
 };

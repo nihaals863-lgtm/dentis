@@ -35,11 +35,6 @@ const deleteLaboratory = async (id) => {
     throw new Error(`Cannot delete laboratory: ${casesCount} active cases are linked to this lab.`);
   }
 
-  // Delete related documents first (if any)
-  await prisma.document.deleteMany({
-    where: { laboratoryId: labId }
-  });
-
   return await prisma.laboratory.delete({
     where: { id: labId },
   });

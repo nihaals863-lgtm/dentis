@@ -144,12 +144,38 @@ const updateEmployee = async (id, employeeData) => {
 };
 
 const deleteEmployee = async (id) => {
-  const employee = await prisma.employee.findUnique({ where: { id: parseInt(id) } });
+  const empId = parseInt(id);
+  const employee = await prisma.employee.findUnique({ 
+    where: { id: empId },
+    include: { user: true }
+  });
   if (!employee) throw new Error('Employee not found');
   
-  // prisma schema has onDelete: Cascade for user -> employee relation
-  return await prisma.user.delete({
-    where: { id: employee.userId },
+  // 1. Check for historical dependencies (LabCases)
+  const casesCount = await prisma.labCase.count({
+    where: { dentistId: empId }
+  });
+
+  if (casesCount > 0) {
+    throw new Error(`Cannot delete employee: They are linked to ${casesCount} clinical cases. Please deactivate them instead.`);
+  }
+
+  // 2. Transactional cleanup of other relations
+  return await prisma.$transaction(async (tx) => {
+    // Delete schedules
+    await tx.schedule.deleteMany({ where: { employeeId: empId } });
+    
+    // Delete leave requests and balances
+    await tx.leaveRequest.deleteMany({ where: { employeeId: empId } });
+    await tx.leaveBalance.deleteMany({ where: { employeeId: empId } });
+    
+    // Delete reminders linked to the user
+    await tx.reminder.deleteMany({ where: { userId: employee.userId } });
+
+    // 3. Delete the user (cascades to employee)
+    return await tx.user.delete({
+      where: { id: employee.userId },
+    });
   });
 };
 

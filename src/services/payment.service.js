@@ -57,7 +57,7 @@ const processedBatchPayments = async (batchData) => {
             paymentType: 'LABCASE_PAYMENT',
             amount: amountPerCase,
             paymentDate: new Date(),
-            paymentMethod: method?.toUpperCase() || 'CASH',
+            paymentMethod: method ? method.toUpperCase().replace(/\s+/g, '_') : 'CASH',
             notes: notes || 'Batch payment',
             labCase: { connect: { id: parseInt(id) } },
           },
@@ -97,7 +97,7 @@ const processedBatchPayments = async (batchData) => {
             paymentType: 'EXPENSE_PAYMENT',
             amount: p.amount,
             paymentDate: new Date(),
-            paymentMethod: p.paymentMethod || 'CASH',
+            paymentMethod: p.paymentMethod ? p.paymentMethod.toUpperCase().replace(/\s+/g, '_') : 'CASH',
             expense: { connect: { id: parseInt(p.expenseId) } },
           },
         });

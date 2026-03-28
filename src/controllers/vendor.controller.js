@@ -46,10 +46,23 @@ const deleteVendor = async (req, res, next) => {
   }
 };
 
+const importVendors = async (req, res, next) => {
+  try {
+    const result = await vendorService.importVendors(req.body);
+    res.status(201).json({
+      message: 'Vendors imported successfully',
+      count: result.count
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllVendors,
   getVendorById,
   createVendor,
   updateVendor,
   deleteVendor,
+  importVendors
 };
