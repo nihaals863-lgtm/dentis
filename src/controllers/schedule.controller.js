@@ -46,14 +46,22 @@ const getSchedules = async (req, res, next) => {
         String(d.getMonth() + 1).padStart(2, '0') + '-' + 
         String(d.getDate()).padStart(2, '0');
 
+      const formatTime = (dateObj) => {
+        if (!dateObj) return '';
+        const d = new Date(dateObj);
+        return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      };
+
       return {
         id: s.id,
         employeeId: s.employeeId,
+        employeeName: s.employee ? `${s.employee.firstName} ${s.employee.lastName}` : 'Unknown',
         branch: s.branch,
         title: s.title || 'Work Shift',
+        shiftType: s.scheduleType || 'SHIFT',
         date, // Crucial for Day/Week grouping in local time
-        startTime: s.startTime,
-        endTime: s.endTime
+        startTime: formatTime(s.startTime),
+        endTime: formatTime(s.endTime)
       };
     });
 
