@@ -47,7 +47,8 @@ const getReminders = async (userId, userRole) => {
   const whereClause = isAdmin ? {} : {
     OR: [
       { userId: parseInt(userId) },
-      { targetUserId: parseInt(userId) }
+      { targetUserId: parseInt(userId) },
+      { targetUserId: null }
     ]
   };
 
@@ -111,11 +112,20 @@ const getActiveNotifications = async (userId, userRole) => {
       { notifyAt: null }
     ]
   } : {
-    targetUserId: parseInt(userId),
-    isRead: false,
-    OR: [
-      { notifyAt: { lte: today } },
-      { notifyAt: null }
+    AND: [
+      {
+        OR: [
+          { targetUserId: parseInt(userId) },
+          { targetUserId: null }
+        ]
+      },
+      { isRead: false },
+      {
+        OR: [
+          { notifyAt: { lte: today } },
+          { notifyAt: null }
+        ]
+      }
     ]
   };
 

@@ -62,44 +62,61 @@ const processedBatchPayments = async (batchData) => {
 
     // Handle new Case List format
     if (caseIds && Array.isArray(caseIds)) {
-      const amountPerCase = parseFloat(amount) / caseIds.length;
-      
-      for (const id of caseIds) {
-        const payment = await tx.payment.create({
-          data: {
-            paymentType: 'LABCASE_PAYMENT',
-            amount: amountPerCase,
-            paymentDate: new Date(),
-            paymentMethod: mapPaymentMethod(method),
-            notes: notes || 'Batch payment',
-            labCase: { connect: { id: parseInt(id) } },
-          },
-        });
+      let remainingAmount = parseFloat(amount);
+      const reversedIds = [...caseIds]; // Maintain selection order or reverse if needed, here we'll just go in order
 
-        // Get the updated case data to calculate status
+      for (let i = 0; i < reversedIds.length; i++) {
+        const id = reversedIds[i];
         const labCase = await tx.labCase.findUnique({
-          where: { id: parseInt(id) },
-          include: { payments: true }
+          where: { id: parseInt(id) }
         });
 
-        const totalPaid = labCase.payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
-        const cost = parseFloat(labCase.cost || 0);
+        if (!labCase) continue;
+
+        const isLastItem = i === reversedIds.length - 1;
+        const itemDue = Math.max(0, parseFloat(labCase.cost || 0) - parseFloat(labCase.amountPaid || 0));
         
-        let paymentStatus = 'UNPAID';
-        if (totalPaid >= cost && cost > 0) {
-          paymentStatus = 'PAID';
-        } else if (totalPaid > 0) {
-          paymentStatus = 'PARTIAL';
+        let paymentAmount = 0;
+        if (isLastItem) {
+          // All remaining batch amount goes to the last item
+          paymentAmount = remainingAmount;
+        } else {
+          // Pay the due amount for this item, but not more than remaining batch amount
+          paymentAmount = Math.min(remainingAmount, itemDue);
         }
 
-        await tx.labCase.update({
-          where: { id: parseInt(id) },
-          data: {
-            amountPaid: totalPaid,
-            paymentStatus: paymentStatus,
-          },
-        });
-        results.push(payment);
+        if (paymentAmount > 0 || isLastItem) { // Record even 0 for the last item if needed, but normally amount > 0
+          const payment = await tx.payment.create({
+            data: {
+              paymentType: 'LABCASE_PAYMENT',
+              amount: paymentAmount,
+              paymentDate: new Date(),
+              paymentMethod: mapPaymentMethod(method),
+              notes: notes || 'Batch payment',
+              labCase: { connect: { id: parseInt(id) } },
+            },
+          });
+
+          const newAmountPaid = parseFloat(labCase.amountPaid || 0) + paymentAmount;
+          const cost = parseFloat(labCase.cost || 0);
+          
+          let paymentStatus = 'PENDING';
+          if (newAmountPaid >= cost && cost > 0) {
+            paymentStatus = 'PAID';
+          } else if (newAmountPaid > 0) {
+            paymentStatus = 'PARTIAL';
+          }
+
+          await tx.labCase.update({
+            where: { id: parseInt(id) },
+            data: {
+              amountPaid: newAmountPaid,
+              paymentStatus: paymentStatus,
+            },
+          });
+          results.push(payment);
+          remainingAmount -= paymentAmount;
+        }
       }
     } 
     // Handle legacy expense payments format if still needed
@@ -146,26 +163,56 @@ const getAllPayments = async () => {
           labCase: { include: { laboratory: true } },
           documents: true
         },
-        orderBy: { paymentDate: 'desc' },
+        orderBy: [
+          { paymentDate: 'desc' },
+          { id: 'desc' }
+        ],
     });
 
-    const formattedPayments = (payments || []).map(p => ({
-        id: p.id,
-        type: p.paymentType === "LABCASE_PAYMENT" ? "LAB" : "EXPENSE",
-        itemName: p.labCaseId
-          ? `Case #${p.labCaseId}`
-          : `Expense #${p.expenseId}`,
-        amount: Number(p.amount),
-        method: p.paymentMethod || "Cash",
-        status: "Paid", // All records in payment table are essentially paid
-        date: p.paymentDate ? p.paymentDate.toISOString().split('T')[0] : "",
-        // Keep these for branch filtering and detail view if needed
-        branch: p.labCase?.branch || p.expense?.branch,
-        attachment: p.documents?.[0]?.fileUrl,
-        notes: p.notes,
-        referenceNumber: p.referenceNumber,
-        originalData: p // Keep original just in case
-    }));
+    const formattedPayments = (payments || []).map(p => {
+        const type = p.paymentType === "LABCASE_PAYMENT" ? "LAB" : "EXPENSE";
+        let itemName = 'Unknown Payment';
+
+        if (type === 'LAB') {
+            if (p.labCase) {
+                itemName = `Patient: ${p.labCase.patientName || 'N/A'}`;
+                if (p.labCase.laboratory?.name) {
+                    itemName += ` (Lab: ${p.labCase.laboratory.name})`;
+                }
+            } else if (p.labCaseId) {
+                itemName = `Lab Case #${p.labCaseId}`;
+            } else {
+                itemName = 'Lab Payment (Case Link Missing)';
+            }
+        } else {
+            if (p.expense) {
+                itemName = `Vendor: ${p.expense.vendor?.name || 'N/A'}`;
+                if (p.expense.category) {
+                    itemName += ` (${p.expense.category})`;
+                }
+            } else if (p.expenseId) {
+                itemName = `Expense #${p.expenseId}`;
+            } else {
+                itemName = 'Expense Payment (Link Missing)';
+            }
+        }
+
+        return {
+            id: p.id,
+            type,
+            itemName,
+            amount: Number(p.amount),
+            method: p.paymentMethod || "Cash",
+            status: "Paid",
+            date: p.paymentDate ? p.paymentDate.toISOString().split('T')[0] : "",
+            branch: p.labCase?.branch || p.expense?.branch || 'N/A',
+            attachment: p.documents?.[0]?.fileUrl,
+            notes: p.notes,
+            referenceNumber: p.referenceNumber,
+            originalData: p,
+            caseCount: 1 // For backward compatibility if needed by frontend
+        };
+    });
 
     return formattedPayments;
 };

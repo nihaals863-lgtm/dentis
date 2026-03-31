@@ -77,50 +77,68 @@ const processBatchPayment = async (payload) => {
   const count = expenseIds.length;
   if (count === 0) return;
 
-  const amountPerExpense = parseFloat(amount) / count;
+  let remainingBatchAmount = parseFloat(amount);
+  const reversedIds = [...expenseIds];
 
-  const results = await Promise.all(expenseIds.map(async (id) => {
+  const results = [];
+  for (let i = 0; i < reversedIds.length; i++) {
+    const id = reversedIds[i];
     const expense = await prisma.expense.findUnique({ where: { id: parseInt(id) } });
-    if (!expense) return null;
+    if (!expense) continue;
 
-    const newAmountPaid = parseFloat(expense.amountPaid) + amountPerExpense;
-    const totalAmount = parseFloat(expense.amount);
+    const isLastItem = i === reversedIds.length - 1;
+    const itemDue = Math.max(0, parseFloat(expense.amount) - parseFloat(expense.amountPaid || 0));
     
-    let paymentStatus = 'PARTIAL';
-    let status = 'PENDING';
-
-    if (newAmountPaid >= totalAmount) {
-      paymentStatus = 'PAID';
-      status = 'PAID';
+    let paymentAmount = 0;
+    if (isLastItem) {
+      paymentAmount = remainingBatchAmount;
+    } else {
+      paymentAmount = Math.min(remainingBatchAmount, itemDue);
     }
 
-    // Create Payment Record
-    const payment = await prisma.payment.create({
-      data: {
-        paymentType: 'EXPENSE_PAYMENT',
-        expenseId: expense.id,
-        amount: amountPerExpense,
-        paymentDate: new Date(),
-        paymentMethod: mapPaymentMethod(method),
-        notes: notes,
-        status: 'PAID'
+    if (paymentAmount > 0 || isLastItem) {
+      // Create Payment Record
+      const payment = await prisma.payment.create({
+        data: {
+          paymentType: 'EXPENSE_PAYMENT',
+          expenseId: expense.id,
+          amount: paymentAmount,
+          paymentDate: new Date(),
+          paymentMethod: mapPaymentMethod(method),
+          notes: notes,
+          status: 'PAID'
+        }
+      });
+
+      const newAmountPaid = parseFloat(expense.amountPaid || 0) + paymentAmount;
+      const totalAmount = parseFloat(expense.amount);
+      
+      let paymentStatus = 'PARTIAL';
+      let status = 'PENDING';
+
+      if (newAmountPaid >= totalAmount && totalAmount > 0) {
+        paymentStatus = 'PAID';
+        status = 'PAID';
+      } else if (newAmountPaid > 0) {
+        paymentStatus = 'PARTIAL';
       }
-    });
 
-    // Update Expense
-    await prisma.expense.update({
-      where: { id: expense.id },
-      data: {
-        amountPaid: newAmountPaid,
-        paymentStatus: paymentStatus,
-        status: status
-      }
-    });
+      // Update Expense
+      await prisma.expense.update({
+        where: { id: expense.id },
+        data: {
+          amountPaid: newAmountPaid,
+          paymentStatus: paymentStatus,
+          status: status
+        }
+      });
 
-    return payment;
-  }));
+      results.push(payment);
+      remainingBatchAmount -= paymentAmount;
+    }
+  }
 
-  return results.filter(Boolean);
+  return results;
 };
 
 const deleteExpense = async (id) => {
