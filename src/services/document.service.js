@@ -9,24 +9,32 @@ const categoryLabel = {
   REPORT: 'Lab Case',
   IMAGE: 'Lab Case',
   EXPENSE: 'Expense',
+  DAILY_INCOME_SHEET: 'Daily Income Sheet',
+  LICENSE: 'License',
+  WORK_PERMIT: 'Work Permit',
+  VISA: 'Visa',
+  AGREEMENT: 'Agreement',
+  ID: 'ID',
   OTHER: 'General',
 };
 
 const createDocument = async (docData) => {
-  const { vendorId, labCaseId, expenseId, paymentId, ...data } = docData;
+  const { vendorId, labCaseId, expenseId, paymentId, employeeId, laboratoryId, ...data } = docData;
   
   const connectData = {};
   if (vendorId) connectData.vendor = { connect: { id: parseInt(vendorId) } };
   if (labCaseId) connectData.labCase = { connect: { id: parseInt(labCaseId) } };
   if (expenseId) connectData.expense = { connect: { id: parseInt(expenseId) } };
   if (paymentId) connectData.payment = { connect: { id: parseInt(paymentId) } };
+  if (employeeId) connectData.employee = { connect: { id: parseInt(employeeId) } };
+  if (laboratoryId) connectData.laboratory = { connect: { id: parseInt(laboratoryId) } };
 
   const doc = await prisma.document.create({
     data: {
       ...data,
       ...connectData,
     },
-    include: { vendor: true, labCase: true, expense: true, payment: true }
+    include: { vendor: true, labCase: true, expense: true, payment: true, employee: true, laboratory: true }
   });
 
   return normalizeDoc(doc);
@@ -41,7 +49,7 @@ const normalizeDoc = (doc) => ({
 
 const getAllDocuments = async () => {
   const docs = await prisma.document.findMany({
-    include: { vendor: true, labCase: true, expense: true, payment: true },
+    include: { vendor: true, labCase: true, expense: true, payment: true, employee: true, laboratory: true },
     orderBy: { createdAt: 'desc' }
   });
   return docs.map(normalizeDoc);

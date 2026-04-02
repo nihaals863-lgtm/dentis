@@ -5,6 +5,7 @@ const createReminder = async (req, res, next) => {
     const reminder = await reminderService.createReminder({
       ...req.body,
       userId: req.user.id,
+      attachmentUrl: req.file ? `/uploads/${req.file.filename}` : null,
     });
     res.status(201).json(reminder);
   } catch (error) {
@@ -34,7 +35,11 @@ const getNotifications = async (req, res, next) => {
 
 const updateReminder = async (req, res, next) => {
   try {
-    const reminder = await reminderService.updateReminder(req.params.id, req.body);
+    const updateData = { ...req.body };
+    if (req.file) {
+      updateData.attachmentUrl = `/uploads/${req.file.filename}`;
+    }
+    const reminder = await reminderService.updateReminder(req.params.id, updateData);
     res.json(reminder);
   } catch (error) {
     next(error);

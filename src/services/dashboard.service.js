@@ -52,15 +52,17 @@ const getFinancialAnalytics = async (branch) => {
     const mName = months[d.getMonth()];
     const year = d.getFullYear();
 
-    // Automated Revenue (LabCases)
-    let monthRevenue = labCases
-      .filter(c => {
-        const cDate = new Date(c.createdAt);
-        return cDate.getMonth() === d.getMonth() && cDate.getFullYear() === year;
+    // Live Revenue (Sum of all LabCase payments in this period)
+    let monthRevenue = payments
+      .filter(p => {
+        const pDate = new Date(p.paymentDate || p.createdAt);
+        return p.paymentType === 'LABCASE_PAYMENT' && 
+               pDate.getMonth() === d.getMonth() && 
+               pDate.getFullYear() === year;
       })
-      .reduce((acc, c) => acc + parseFloat(c.amountPaid || 0), 0);
+      .reduce((acc, p) => acc + parseFloat(p.amount || 0), 0);
 
-    // Automated Expenses (Vendor Expenses)
+    // Live Expenses (Sum of all Expense records in this period)
     let monthExpenses = expenses
       .filter(e => {
         const eDate = new Date(e.expenseDate);
@@ -70,7 +72,7 @@ const getFinancialAnalytics = async (branch) => {
 
     let monthSalaries = baseMonthlySalaries;
 
-    // Manual Adjustments
+    // Manual Adjustments (User-entered records)
     const manualForMonth = manualEntries.filter(m => m.month === mName && m.year === year);
     manualForMonth.forEach(m => {
       if (m.type === 'REVENUE') monthRevenue += parseFloat(m.amount);
@@ -84,9 +86,9 @@ const getFinancialAnalytics = async (branch) => {
     analytics.push({
       month: mName,
       revenue: monthRevenue,
-      expenses: monthExpenses,
+      expenses: monthExpenses, // Direct expenses
       salaries: monthSalaries,
-      costs: totalCosts, // UI uses 'costs' for some labels
+      costs: totalCosts, // Total costs (expenses + salaries)
       profit: profit,
       margin: margin
     });

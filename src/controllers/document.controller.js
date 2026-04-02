@@ -10,6 +10,12 @@ const mapCategory = (cat) => {
     'Payment': 'RECEIPT',
     'Expense': 'EXPENSE',
     'General': 'OTHER',
+    'Daily Income Sheet': 'DAILY_INCOME_SHEET',
+    'License': 'LICENSE',
+    'Work Permit': 'WORK_PERMIT',
+    'Visa': 'VISA',
+    'Agreement': 'AGREEMENT',
+    'ID': 'ID',
     'CONTRACT': 'CONTRACT',
     'INVOICE': 'INVOICE',
     'RECEIPT': 'RECEIPT',
@@ -27,7 +33,7 @@ const uploadDocument = async (req, res, next) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const { category, title, description, vendorId, labCaseId, expenseId, paymentId } = req.body;
+    const { category, title, description, vendorId, labCaseId, expenseId, paymentId, employeeId, laboratoryId, branch } = req.body;
 
     // Build a public URL path from the multer saved path
     const fileUrl = `/uploads/${path.basename(req.file.path)}`;
@@ -40,10 +46,13 @@ const uploadDocument = async (req, res, next) => {
       category: mapCategory(category),
       title: title || req.file.originalname,
       description,
+      branch,
       vendorId,
       labCaseId,
       expenseId,
       paymentId,
+      employeeId,
+      laboratoryId,
     });
 
     res.status(201).json(document);

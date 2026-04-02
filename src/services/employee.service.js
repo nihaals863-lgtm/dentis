@@ -44,7 +44,7 @@ const createEmployee = async (employeeData) => {
     firstName, lastName, phone, dateOfBirth, gender, address, 
     nationalId, profileImageUrl, jobTitle, specialization, licenseNumber, 
     licenseExpiry, visaExpiry, workPermitExpiry,
-    employmentType, status, joiningDate, basicSalary, notes
+    employmentType, status, joiningDate, endDate, basicSalary, notes
   } = employeeData;
 
   const hashedPassword = await hashPassword(password || 'Dental@123');
@@ -79,6 +79,7 @@ const createEmployee = async (employeeData) => {
         employmentType,
         status,
         joiningDate: joiningDate ? new Date(joiningDate) : new Date(),
+        endDate: endDate ? new Date(endDate) : null,
         basicSalary: parseFloat(basicSalary || 0),
         notes,
       },
@@ -93,7 +94,7 @@ const updateEmployee = async (id, employeeData) => {
     firstName, lastName, phone, dateOfBirth, gender, address, 
     nationalId, profileImageUrl, jobTitle, specialization, licenseNumber, 
     licenseExpiry, visaExpiry, workPermitExpiry,
-    employmentType, status, joiningDate, basicSalary, notes
+    employmentType, status, joiningDate, endDate, basicSalary, notes
   } = employeeData;
 
   return await prisma.$transaction(async (tx) => {
@@ -135,6 +136,7 @@ const updateEmployee = async (id, employeeData) => {
         ...(employmentType && { employmentType }),
         ...(status && { status }),
         ...(joiningDate && { joiningDate: new Date(joiningDate) }),
+        ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
         ...(basicSalary && { basicSalary: parseFloat(basicSalary) }),
         ...(notes && { notes }),
       },
@@ -213,6 +215,7 @@ const importEmployees = async (employeesArray) => {
         licenseExpiry: emp.licenseExpiry === 'N/A' ? null : emp.licenseExpiry,
         visaExpiry: emp.visaExpiry === 'N/A' ? null : emp.visaExpiry,
         workPermitExpiry: emp.workPermitExpiry === 'N/A' ? null : emp.workPermitExpiry,
+        endDate: emp.endDate === 'N/A' ? null : (emp.endDate || null),
         status: 'ACTIVE',
         employmentType: 'FULL_TIME'
       };

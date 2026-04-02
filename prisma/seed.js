@@ -63,7 +63,7 @@ async function main() {
         create: {
           roleId: role.id,
           module: module,
-          canView: is_admin || is_manager || (is_staff && ['lab_cases', 'vendors', 'leaves', 'dashboard', 'documents'].includes(module)) || (is_accountant && ['expenses', 'vendors', 'payments', 'finance', 'dashboard'].includes(module)),
+          canView: is_admin || is_manager || (is_staff && ['lab_cases', 'vendors', 'leaves', 'dashboard', 'documents', 'schedules', 'reminders'].includes(module)) || (is_accountant && ['expenses', 'vendors', 'payments', 'finance', 'dashboard', 'schedules', 'reminders'].includes(module)),
           canCreate: is_admin || (is_manager && ['schedules', 'reminders'].includes(module)) || (is_staff && ['lab_cases', 'leaves', 'documents'].includes(module)) || (is_accountant && ['expenses', 'vendors', 'payments'].includes(module)),
           canUpdate: is_admin || (is_manager && ['schedules', 'reminders'].includes(module)) || (role.name === 'SECRETARY' && ['lab_cases'].includes(module)),
           canDelete: is_admin,
@@ -77,7 +77,7 @@ async function main() {
   // 3. Seed Users & Link to Roles
   console.log('--- Seeding Users & Linking to Roles ---');
   const userPresets = [
-    { email: 'admin@gmail.com', password: 'admin123', role: 'ADMIN', firstName: 'Admin', lastName: 'User' },
+    { email: 'drtalal@alawidental.com', password: 'drtalal@321', role: 'ADMIN', firstName: 'Admin', lastName: 'User' },
     { email: 'manager@gmail.com', password: 'pass123', role: 'MANAGER', firstName: 'Manager', lastName: 'User' },
     { email: 'secretary@gmail.com', password: 'pass123', role: 'SECRETARY', firstName: 'Secretary', lastName: 'User' },
     { email: 'dentist@gmail.com', password: 'pass123', role: 'DENTIST', firstName: 'Dentist', lastName: 'User' },

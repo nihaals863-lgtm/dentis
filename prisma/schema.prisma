@@ -115,6 +115,12 @@ enum DocumentCategory {
   REPORT
   IMAGE
   EXPENSE
+  DAILY_INCOME_SHEET
+  LICENSE
+  WORK_PERMIT
+  VISA
+  AGREEMENT
+  ID
   OTHER
 }
 
@@ -198,16 +204,18 @@ model Employee {
   status           EmployeeStatus @default(ACTIVE)
   joiningDate      DateTime       @map("joining_date") @db.Date
   leavingDate      DateTime?      @map("leaving_date") @db.Date
+  endDate          DateTime?      @map("end_date") @db.Date
   basicSalary      Decimal        @default(0) @map("basic_salary") @db.Decimal(10, 2)
   notes            String?        @db.Text
   createdAt        DateTime       @default(now()) @map("created_at")
   updatedAt        DateTime       @updatedAt @map("updated_at")
 
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  labCases     LabCase[]
-  schedules    Schedule[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  labCases      LabCase[]
+  schedules     Schedule[]
   leaveRequests LeaveRequest[]
   leaveBalances LeaveBalance[]
+  documents     Document[]
 
   @@map("employees")
 }
@@ -229,6 +237,7 @@ model Laboratory {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   labCases  LabCase[]
+  documents Document[]
 
   @@map("laboratories")
 }
@@ -453,9 +462,10 @@ model Reminder {
   method        String?      @default("In-App") @db.VarChar(50)
   isRead        Boolean      @default(false) @map("is_read")
   isSent        Boolean      @default(false) @map("is_sent")
-  relatedId     Int?         @map("related_id")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  relatedId    Int?      @map("related_id")
+  attachmentUrl String?   @map("attachment_url") @db.VarChar(600)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   creator    User  @relation("CreatedReminders", fields: [userId], references: [id])
   recipient  User? @relation("ReceivedReminders", fields: [targetUserId], references: [id])
@@ -476,21 +486,26 @@ model Document {
   category     DocumentCategory @default(OTHER)
   title        String?          @db.VarChar(200)
   description  String?          @db.Text
+  branch       String?          @db.VarChar(100)
 
   // Polymorphic-style optional relations
   vendorId     Int?             @map("vendor_id")
   labCaseId    Int?             @map("lab_case_id")
   expenseId    Int?             @map("expense_id")
   paymentId    Int?             @map("payment_id")
+  employeeId   Int?             @map("employee_id")
+  laboratoryId Int?             @map("laboratory_id")
 
   uploadedAt   DateTime         @default(now()) @map("uploaded_at")
   createdAt    DateTime         @default(now()) @map("created_at")
   updatedAt    DateTime         @updatedAt @map("updated_at")
 
-  vendor    Vendor?   @relation(fields: [vendorId], references: [id])
-  labCase   LabCase?  @relation(fields: [labCaseId], references: [id])
-  expense   Expense?  @relation(fields: [expenseId], references: [id])
-  payment   Payment?  @relation(fields: [paymentId], references: [id])
+  vendor     Vendor?     @relation(fields: [vendorId], references: [id])
+  labCase    LabCase?    @relation(fields: [labCaseId], references: [id])
+  expense    Expense?    @relation(fields: [expenseId], references: [id])
+  payment    Payment?    @relation(fields: [paymentId], references: [id])
+  employee   Employee?   @relation(fields: [employeeId], references: [id])
+  laboratory Laboratory? @relation(fields: [laboratoryId], references: [id])
 
   @@map("documents")
 }

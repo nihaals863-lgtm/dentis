@@ -38,6 +38,7 @@ const createReminder = async (reminderData) => {
       branch: branch || 'All Branches',
       method: method || 'In-App',
       reminderType: 'GENERAL',
+      attachmentUrl: reminderData.attachmentUrl || null,
     },
   });
 };
@@ -203,6 +204,7 @@ const updateReminder = async (id, reminderData) => {
   if (branch) updateData.branch = branch;
   if (method) updateData.method = method;
   if (isRead !== undefined) updateData.isRead = isRead;
+  if (reminderData.attachmentUrl !== undefined) updateData.attachmentUrl = reminderData.attachmentUrl;
 
   return await prisma.reminder.update({
     where: { id: parseInt(id) },
