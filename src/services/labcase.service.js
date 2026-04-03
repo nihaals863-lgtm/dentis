@@ -5,7 +5,8 @@ const getAllLabCases = async (user) => {
   const where = {};
   
   // If user is a dentist, only show their cases
-  if (user && user.role?.name === 'DENTIST') {
+  const roleName = user?.role?.name?.toUpperCase();
+  if (roleName === 'DENTIST') {
     const dentistId = user.employee?.id;
     if (dentistId) {
       where.dentistId = dentistId;
@@ -30,7 +31,8 @@ const getLabCaseById = async (id, user) => {
   const where = { id: parseInt(id) };
 
   // If user is a dentist, only allow them to see their own cases
-  if (user && user.role?.name === 'DENTIST') {
+  const roleName = user?.role?.name?.toUpperCase();
+  if (roleName === 'DENTIST') {
     const dentistId = user.employee?.id;
     if (dentistId) {
       where.dentistId = dentistId;

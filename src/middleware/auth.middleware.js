@@ -73,6 +73,7 @@ const checkPermission = (module, action) => {
     const targetAction = actionMap[action.toLowerCase()] || action;
     
     if (!permission[targetAction]) {
+      console.log(`[AUTH] Permission DENIED for user ${user.email} (Role: ${user.role.name}) on ${module}:${action}`);
       return res.status(403).json({ message: `Permission denied for ${module}:${action}` });
     }
 

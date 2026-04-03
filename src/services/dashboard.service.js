@@ -116,6 +116,21 @@ const createMonthlyFinancial = async (data) => {
   });
 };
 
+const getMonthlyFinancials = async (branch) => {
+  const where = branch && branch !== 'all' ? { branch: { contains: branch } } : {};
+  return await prisma.monthlyFinancial.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    take: 50
+  });
+};
+
+const deleteMonthlyFinancial = async (id) => {
+  return await prisma.monthlyFinancial.delete({
+    where: { id: parseInt(id) }
+  });
+};
+
 const getAdminStats = async (user) => {
   const roleName = typeof user.role === 'object' ? user.role.name : user.role;
   const isAdmin = ['ADMIN', 'MANAGER', 'SECRETARY'].includes(roleName?.toUpperCase());
@@ -201,5 +216,7 @@ const getAdminStats = async (user) => {
 module.exports = {
   getAdminStats,
   getFinancialAnalytics,
-  createMonthlyFinancial
+  createMonthlyFinancial,
+  getMonthlyFinancials,
+  deleteMonthlyFinancial
 };

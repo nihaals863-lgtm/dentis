@@ -30,7 +30,7 @@ const getSchedules = async (req, res, next) => {
     const query = { ...req.query };
 
     // ROLE-BASED ACCESS: Employees only see their own
-    if (req.user.role?.name !== 'ADMIN') {
+    if (req.user.role?.name?.toUpperCase() !== 'ADMIN') {
       if (!req.user.employee) {
         return res.status(403).json({ message: 'User has no associated employee record' });
       }

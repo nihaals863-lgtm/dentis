@@ -25,6 +25,8 @@ async function main() {
     'reports',
     'reminders',
     'documents',
+    'leave_balance',
+    'work_schedule',
     'settings'
   ];
 
@@ -81,35 +83,6 @@ async function main() {
       });
     }
     console.log(`- Role ${r.name} seeded with default permissions.`);
-  }
-
-  // Restore User Roles based on Employee jobTitle or name
-  console.log('Restoring User-Role associations...');
-  const users = await prisma.user.findMany({ include: { employee: true } });
-  
-  for (const user of users) {
-    let roleToAssign = 'SECRETARY'; // Default
-
-    if (user.employee) {
-      const title = user.employee.jobTitle?.toUpperCase() || '';
-      const email = user.email.toUpperCase();
-
-      if (email.includes('ADMIN')) roleToAssign = 'ADMIN';
-      else if (title.includes('DENTIST')) roleToAssign = 'DENTIST';
-      else if (title.includes('MANAGER')) roleToAssign = 'MANAGER';
-      else if (title.includes('ASSISTANT')) roleToAssign = 'ASSISTANT';
-      else if (title.includes('ACCOUNTANT')) roleToAssign = 'ACCOUNTANT';
-      else if (title.includes('SECRETARY')) roleToAssign = 'SECRETARY';
-    }
-
-    const role = await prisma.role.findUnique({ where: { name: roleToAssign } });
-    if (role) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { roleId: role.id }
-      });
-      console.log(`  User ${user.email} assigned to ${roleToAssign}`);
-    }
   }
 
   console.log('RBAC Seeding complete!');
