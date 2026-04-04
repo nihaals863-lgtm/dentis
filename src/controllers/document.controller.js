@@ -1,32 +1,7 @@
 const documentService = require('../services/document.service');
 const path = require('path');
 
-// Map UI-friendly category labels to Prisma DocumentCategory enum values
-const mapCategory = (cat) => {
-  const map = {
-    'Lab Case': 'REPORT',
-    'Vendor': 'INVOICE',
-    'Employee': 'CONTRACT',
-    'Payment': 'RECEIPT',
-    'Expense': 'EXPENSE',
-    'General': 'OTHER',
-    'Daily Income Sheet': 'DAILY_INCOME_SHEET',
-    'License': 'LICENSE',
-    'Work Permit': 'WORK_PERMIT',
-    'Visa': 'VISA',
-    'Agreement': 'AGREEMENT',
-    'ID': 'ID',
-    'CONTRACT': 'CONTRACT',
-    'INVOICE': 'INVOICE',
-    'RECEIPT': 'RECEIPT',
-    'EXPENSE': 'EXPENSE',
-    'REPORT': 'REPORT',
-    'IMAGE': 'IMAGE',
-    'OTHER': 'OTHER',
-  };
-  return map[cat] || 'OTHER';
-};
-
+// Remove mapCategory and use raw string from body since schema is now String
 const uploadDocument = async (req, res, next) => {
   try {
     if (!req.file) {
@@ -43,7 +18,7 @@ const uploadDocument = async (req, res, next) => {
       fileUrl,
       fileType: req.file.mimetype,
       fileSizeKb: Math.round(req.file.size / 1024),
-      category: mapCategory(category),
+      category: category || 'General',
       title: title || req.file.originalname,
       description,
       branch,

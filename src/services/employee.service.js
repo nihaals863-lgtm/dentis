@@ -59,6 +59,7 @@ const createEmployee = async (employeeData) => {
         email,
         passwordHash: hashedPassword,
         roleId: roleRecord?.id,
+        isActive: !endDate || new Date(endDate) >= new Date().setHours(0,0,0,0),
       },
     });
 
@@ -124,10 +125,16 @@ const updateEmployee = async (id, employeeData) => {
     const employee = await tx.employee.findUnique({ where: { id: parseInt(id) } });
     if (!employee) throw new Error('Employee not found');
 
-    if (email || role || isActive !== undefined) {
+    if (email || role || isActive !== undefined || endDate !== undefined) {
+        const calculateIsActive = () => {
+          if (isActive !== undefined) return isActive; // Explicit override if provided
+          const targetEndDate = endDate !== undefined ? endDate : employee.endDate;
+          return !targetEndDate || new Date(targetEndDate) >= new Date().setHours(0,0,0,0);
+        };
+
         const updateData = {
           ...(email && { email }),
-          ...(isActive !== undefined && { isActive }),
+          isActive: calculateIsActive(),
         };
         if (role) {
           const roleRecord = await tx.role.findUnique({ where: { name: role } });

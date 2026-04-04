@@ -55,7 +55,20 @@ const getReminders = async (userId, userRole) => {
 
   const manualReminders = await prisma.reminder.findMany({
     where: whereClause,
-    orderBy: { dueAt: 'asc' },
+    include: {
+      recipient: {
+        select: {
+          id: true,
+          employee: {
+            select: {
+              firstName: true,
+              lastName: true
+            }
+          }
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' },
   });
 
   if (isAdmin) {
@@ -89,14 +102,16 @@ const getReminders = async (userId, userRole) => {
               severity: daysLeft <= 15 ? 'critical' : 'warning',
               dueAt: check.date,
               branch: 'All Branches',
-              isSystem: true
+              isSystem: true,
+              createdAt: today // Mock createdAt for sorting
             });
           }
         }
       });
     });
 
-    return [...manualReminders, ...systemAlerts].sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
+    // Combine and sort by createdAt DESC to show newest first
+    return [...manualReminders, ...systemAlerts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
 
   return manualReminders;

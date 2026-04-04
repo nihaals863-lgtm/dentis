@@ -108,20 +108,16 @@ enum ReminderType {
   GENERAL
 }
 
-enum DocumentCategory {
-  CONTRACT
-  INVOICE
-  RECEIPT
-  REPORT
-  IMAGE
-  EXPENSE
-  DAILY_INCOME_SHEET
-  LICENSE
-  WORK_PERMIT
-  VISA
-  AGREEMENT
-  ID
-  OTHER
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  module    String   @db.VarChar(50) // 'VENDOR', 'DOCUMENT', etc.
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([name, module])
+  @@map("categories")
 }
 
 // ─────────────────────────────────────────────
@@ -483,7 +479,7 @@ model Document {
   fileUrl      String           @map("file_url") @db.VarChar(600)
   fileType     String?          @map("file_type") @db.VarChar(50)
   fileSizeKb   Int?             @map("file_size_kb")
-  category     DocumentCategory @default(OTHER)
+  category     String           @default("OTHER") @db.VarChar(100)
   title        String?          @db.VarChar(200)
   description  String?          @db.Text
   branch       String?          @db.VarChar(100)
