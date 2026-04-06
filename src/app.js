@@ -38,6 +38,7 @@ app.use('/api/documents', require('./routes/document.routes'));
 app.use('/api/permissions', require('./routes/permission.routes'));
 app.use('/api/categories', require('./routes/category.routes'));
 
+
 // Error handling middleware
 const errorHandler = require('./middleware/error.middleware');
 app.use(errorHandler);
