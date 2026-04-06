@@ -1,17 +1,28 @@
 const reminderService = require('../services/reminder.service');
 const documentService = require('../services/document.service');
+const { uploadToImageKit } = require('../services/imagekit.service');
 
 const createReminder = async (req, res, next) => {
   try {
-    const attachmentUrl = req.file ? `/uploads/${req.file.filename}` : null;
-    
+    let attachmentUrl = null;
+
+    if (req.file) {
+      // Upload to ImageKit cloud
+      const ikResult = await uploadToImageKit(
+        req.file.buffer,
+        req.file.originalname,
+        'dental-reminders'
+      );
+      attachmentUrl = ikResult.url;
+    }
+
     const reminder = await reminderService.createReminder({
       ...req.body,
       userId: req.user.id,
       attachmentUrl,
     });
 
-    if (req.file) {
+    if (req.file && attachmentUrl) {
       try {
         await documentService.createDocument({
           fileName: req.file.originalname,
@@ -58,15 +69,21 @@ const updateReminder = async (req, res, next) => {
   try {
     const updateData = { ...req.body };
     let attachmentUrl = null;
-    
-    if (req.file) {
-      attachmentUrl = `/uploads/${req.file.filename}`;
-      updateData.attachmentUrl = attachmentUrl;
-    }
-    
-    const reminder = await reminderService.updateReminder(req.params.id, updateData);
 
     if (req.file) {
+      // Upload to ImageKit cloud
+      const ikResult = await uploadToImageKit(
+        req.file.buffer,
+        req.file.originalname,
+        'dental-reminders'
+      );
+      attachmentUrl = ikResult.url;
+      updateData.attachmentUrl = attachmentUrl;
+    }
+
+    const reminder = await reminderService.updateReminder(req.params.id, updateData);
+
+    if (req.file && attachmentUrl) {
       try {
         await documentService.createDocument({
           fileName: req.file.originalname,

@@ -1,7 +1,6 @@
 const documentService = require('../services/document.service');
-const path = require('path');
+const { uploadToImageKit } = require('../services/imagekit.service');
 
-// Remove mapCategory and use raw string from body since schema is now String
 const uploadDocument = async (req, res, next) => {
   try {
     if (!req.file) {
@@ -10,8 +9,15 @@ const uploadDocument = async (req, res, next) => {
 
     const { category, title, description, vendorId, labCaseId, expenseId, paymentId, employeeId, laboratoryId, branch } = req.body;
 
-    // Build a public URL path from the multer saved path
-    const fileUrl = `/uploads/${path.basename(req.file.path)}`;
+    // Upload to ImageKit (cloud) — req.file.buffer from memoryStorage
+    const ikResult = await uploadToImageKit(
+      req.file.buffer,
+      req.file.originalname,
+      'dental-documents'
+    );
+
+    // Use the permanent ImageKit CDN URL
+    const fileUrl = ikResult.url;
 
     const document = await documentService.createDocument({
       fileName: req.file.originalname,
