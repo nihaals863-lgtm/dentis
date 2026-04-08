@@ -52,6 +52,14 @@ async function main() {
       const is_accountant = role.name === 'ACCOUNTANT';
       const is_staff = ['SECRETARY', 'DENTIST', 'ASSISTANT'].includes(role.name);
 
+      const perms = {
+        canView: is_admin || is_manager || (is_staff && ['lab_cases', 'vendors', 'leaves', 'dashboard', 'documents', 'schedules', 'reminders', 'employees'].includes(module)) || (is_accountant && ['lab_cases', 'expenses', 'vendors', 'payments', 'finance', 'dashboard', 'schedules', 'reminders', 'employees'].includes(module)),
+        canCreate: is_admin || (is_manager && ['lab_cases', 'payments', 'schedules', 'reminders'].includes(module)) || (is_staff && ['lab_cases', 'leaves', 'documents'].includes(module)) || (is_accountant && ['expenses', 'vendors', 'payments'].includes(module)),
+        canUpdate: is_admin || (is_manager && ['lab_cases', 'payments', 'schedules', 'reminders'].includes(module)) || (role.name === 'SECRETARY' && ['lab_cases'].includes(module)),
+        canDelete: is_admin || (is_manager && ['lab_cases', 'payments'].includes(module)),
+        canExport: is_admin || is_manager || is_accountant,
+      };
+
       await prisma.permission.upsert({
         where: {
           roleId_module: {
@@ -59,15 +67,11 @@ async function main() {
             module: module,
           },
         },
-        update: {},
+        update: perms,
         create: {
           roleId: role.id,
           module: module,
-          canView: is_admin || is_manager || (is_staff && ['lab_cases', 'vendors', 'leaves', 'dashboard', 'documents'].includes(module)) || (is_accountant && ['expenses', 'vendors', 'payments', 'finance', 'dashboard'].includes(module)),
-          canCreate: is_admin || (is_manager && ['schedules', 'reminders'].includes(module)) || (is_staff && ['lab_cases', 'leaves', 'documents'].includes(module)) || (is_accountant && ['expenses', 'vendors', 'payments'].includes(module)),
-          canUpdate: is_admin || (is_manager && ['schedules', 'reminders'].includes(module)) || (role.name === 'SECRETARY' && ['lab_cases'].includes(module)),
-          canDelete: is_admin,
-          canExport: is_admin || is_manager || is_accountant,
+          ...perms,
         },
       });
     }
@@ -77,7 +81,7 @@ async function main() {
   // 3. Seed Users & Link to Roles
   console.log('--- Seeding Users & Linking to Roles ---');
   const userPresets = [
-    { email: 'admin@gmail.com', password: 'admin123', role: 'ADMIN', firstName: 'Admin', lastName: 'User' },
+    { email: 'drtalal@alawidental.com', password: 'drtalal@321', role: 'ADMIN', firstName: 'Admin', lastName: 'User' },
     { email: 'manager@gmail.com', password: 'pass123', role: 'MANAGER', firstName: 'Manager', lastName: 'User' },
     { email: 'secretary@gmail.com', password: 'pass123', role: 'SECRETARY', firstName: 'Secretary', lastName: 'User' },
     { email: 'dentist@gmail.com', password: 'pass123', role: 'DENTIST', firstName: 'Dentist', lastName: 'User' },

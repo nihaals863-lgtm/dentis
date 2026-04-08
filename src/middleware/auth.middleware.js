@@ -56,7 +56,24 @@ const checkPermission = (module, action) => {
 
     const permission = user.role.permissions.find(p => p.module === module);
     
-    if (!permission || !permission[action]) {
+    if (!permission) {
+      return res.status(403).json({ message: `Permission denied for ${module}:${action}` });
+    }
+
+    // Map common frontend actions to schema fields
+    const actionMap = {
+      'view': 'canView',
+      'create': 'canCreate',
+      'edit': 'canUpdate',
+      'update': 'canUpdate',
+      'delete': 'canDelete',
+      'export': 'canExport'
+    };
+
+    const targetAction = actionMap[action.toLowerCase()] || action;
+    
+    if (!permission[targetAction]) {
+      console.log(`[AUTH] Permission DENIED for user ${user.email} (Role: ${user.role.name}) on ${module}:${action}`);
       return res.status(403).json({ message: `Permission denied for ${module}:${action}` });
     }
 

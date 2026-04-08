@@ -78,6 +78,15 @@ const deleteLeaveRequest = async (req, res, next) => {
   }
 };
 
+const deleteLeaveBalance = async (req, res, next) => {
+  try {
+    await leaveService.deleteLeaveBalance(req.params.employeeId);
+    res.json({ message: 'Leave balances for employee deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   applyLeave,
   updateLeaveStatus,
@@ -86,5 +95,6 @@ module.exports = {
   getEmployeeBalance,
   updateEmployeeBalances,
   runMonthlyUpdate,
-  deleteLeaveRequest
+  deleteLeaveRequest,
+  deleteLeaveBalance
 };

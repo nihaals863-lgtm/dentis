@@ -6,10 +6,10 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-router.get('/', checkPermission('schedule', 'canView'), scheduleController.getSchedules);
-router.post('/', checkPermission('schedule', 'canCreate'), scheduleController.createSchedule);
-router.post('/batch', checkPermission('schedule', 'canCreate'), scheduleController.createManySchedules);
-router.put('/:id', checkPermission('schedule', 'canUpdate'), scheduleController.updateSchedule);
-router.delete('/:id', checkPermission('schedule', 'canDelete'), scheduleController.deleteSchedule);
+router.get('/', checkPermission('schedule', 'view'), scheduleController.getSchedules);
+router.post('/', checkPermission('schedule', 'create'), scheduleController.createSchedule);
+router.post('/batch', checkPermission('schedule', 'create'), scheduleController.createManySchedules);
+router.put('/:id', checkPermission('schedule', 'update'), scheduleController.updateSchedule);
+router.delete('/:id', checkPermission('schedule', 'delete'), scheduleController.deleteSchedule);
 
 module.exports = router;

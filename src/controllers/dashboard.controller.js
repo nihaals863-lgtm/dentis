@@ -28,8 +28,29 @@ const addFinancialEntry = async (req, res, next) => {
   }
 };
 
+const getFinancialEntries = async (req, res, next) => {
+  try {
+    const { branch } = req.query;
+    const entries = await dashboardService.getMonthlyFinancials(branch);
+    res.json(entries);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteFinancialEntry = async (req, res, next) => {
+  try {
+    await dashboardService.deleteMonthlyFinancial(req.params.id);
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getStats,
   getAnalytics,
-  addFinancialEntry
+  addFinancialEntry,
+  getFinancialEntries,
+  deleteFinancialEntry
 };

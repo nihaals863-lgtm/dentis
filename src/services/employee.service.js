@@ -7,7 +7,8 @@ const getAllEmployees = async () => {
     include: { 
       user: { 
         include: { role: true }
-      } 
+      },
+      documents: true
     },
   });
   return employees.map(emp => ({
@@ -25,7 +26,8 @@ const getEmployeeById = async (id) => {
     include: { 
       user: { 
         include: { role: true }
-      } 
+      },
+      documents: true
     },
   });
   if (!emp) return null;
@@ -44,7 +46,8 @@ const createEmployee = async (employeeData) => {
     firstName, lastName, phone, dateOfBirth, gender, address, 
     nationalId, profileImageUrl, jobTitle, specialization, licenseNumber, 
     licenseExpiry, visaExpiry, workPermitExpiry,
-    employmentType, status, joiningDate, basicSalary, notes
+    employmentType, status, joiningDate, endDate, basicSalary, notes,
+    documents
   } = employeeData;
 
   const hashedPassword = await hashPassword(password || 'Dental@123');
@@ -56,10 +59,11 @@ const createEmployee = async (employeeData) => {
         email,
         passwordHash: hashedPassword,
         roleId: roleRecord?.id,
+        isActive: !endDate || new Date(endDate) >= new Date().setHours(0,0,0,0),
       },
     });
 
-    return await tx.employee.create({
+    const employee = await tx.employee.create({
       data: {
         userId: user.id,
         firstName,
@@ -79,11 +83,31 @@ const createEmployee = async (employeeData) => {
         employmentType,
         status,
         joiningDate: joiningDate ? new Date(joiningDate) : new Date(),
+        endDate: endDate ? new Date(endDate) : null,
         basicSalary: parseFloat(basicSalary || 0),
         notes,
       },
-      include: { user: true },
+      include: { user: true, documents: true },
     });
+
+    if (documents && Array.isArray(documents)) {
+      for (const d of documents) {
+        const docUrl = typeof d === 'object' ? d.fileUrl : d;
+        if (!docUrl) continue;
+        const fileName = docUrl.split('/').pop() || 'document';
+        await tx.document.create({
+          data: {
+            title: `ID/Doc - ${firstName}`,
+            fileName: fileName,
+            fileUrl: docUrl,
+            fileType: fileName.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+            category: 'ID',
+            employeeId: employee.id
+          }
+        });
+      }
+    }
+    return employee;
   });
 };
 
@@ -93,17 +117,24 @@ const updateEmployee = async (id, employeeData) => {
     firstName, lastName, phone, dateOfBirth, gender, address, 
     nationalId, profileImageUrl, jobTitle, specialization, licenseNumber, 
     licenseExpiry, visaExpiry, workPermitExpiry,
-    employmentType, status, joiningDate, basicSalary, notes
+    employmentType, status, joiningDate, endDate, basicSalary, notes,
+    documents
   } = employeeData;
 
   return await prisma.$transaction(async (tx) => {
     const employee = await tx.employee.findUnique({ where: { id: parseInt(id) } });
     if (!employee) throw new Error('Employee not found');
 
-    if (email || role || isActive !== undefined) {
+    if (email || role || isActive !== undefined || endDate !== undefined) {
+        const calculateIsActive = () => {
+          if (isActive !== undefined) return isActive; // Explicit override if provided
+          const targetEndDate = endDate !== undefined ? endDate : employee.endDate;
+          return !targetEndDate || new Date(targetEndDate) >= new Date().setHours(0,0,0,0);
+        };
+
         const updateData = {
           ...(email && { email }),
-          ...(isActive !== undefined && { isActive }),
+          isActive: calculateIsActive(),
         };
         if (role) {
           const roleRecord = await tx.role.findUnique({ where: { name: role } });
@@ -115,7 +146,7 @@ const updateEmployee = async (id, employeeData) => {
         });
     }
 
-    return await tx.employee.update({
+    const updatedEmployee = await tx.employee.update({
       where: { id: parseInt(id) },
       data: {
         ...(firstName && { firstName }),
@@ -135,11 +166,34 @@ const updateEmployee = async (id, employeeData) => {
         ...(employmentType && { employmentType }),
         ...(status && { status }),
         ...(joiningDate && { joiningDate: new Date(joiningDate) }),
+        ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
         ...(basicSalary && { basicSalary: parseFloat(basicSalary) }),
         ...(notes && { notes }),
       },
-      include: { user: true },
+      include: { user: true, documents: true },
     });
+
+    if (documents && Array.isArray(documents)) {
+      const existingDocs = await tx.document.findMany({ where: { employeeId: parseInt(id) } });
+      const existingUrls = existingDocs.map(d => d.fileUrl);
+      
+      for (const d of documents) {
+        const docUrl = typeof d === 'object' ? d.fileUrl : d;
+        if (!docUrl || existingUrls.includes(docUrl)) continue;
+        const fileName = docUrl.split('/').pop() || 'document';
+        await tx.document.create({
+          data: {
+            title: `ID/Doc - ${updatedEmployee.firstName}`,
+            fileName: fileName,
+            fileUrl: docUrl,
+            fileType: fileName.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+            category: 'ID',
+            employeeId: updatedEmployee.id
+          }
+        });
+      }
+    }
+    return updatedEmployee;
   });
 };
 
@@ -213,6 +267,7 @@ const importEmployees = async (employeesArray) => {
         licenseExpiry: emp.licenseExpiry === 'N/A' ? null : emp.licenseExpiry,
         visaExpiry: emp.visaExpiry === 'N/A' ? null : emp.visaExpiry,
         workPermitExpiry: emp.workPermitExpiry === 'N/A' ? null : emp.workPermitExpiry,
+        endDate: emp.endDate === 'N/A' ? null : (emp.endDate || null),
         status: 'ACTIVE',
         employmentType: 'FULL_TIME'
       };

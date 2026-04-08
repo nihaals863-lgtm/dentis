@@ -1,25 +1,5 @@
 const documentService = require('../services/document.service');
-const path = require('path');
-
-// Map UI-friendly category labels to Prisma DocumentCategory enum values
-const mapCategory = (cat) => {
-  const map = {
-    'Lab Case': 'REPORT',
-    'Vendor': 'INVOICE',
-    'Employee': 'CONTRACT',
-    'Payment': 'RECEIPT',
-    'Expense': 'EXPENSE',
-    'General': 'OTHER',
-    'CONTRACT': 'CONTRACT',
-    'INVOICE': 'INVOICE',
-    'RECEIPT': 'RECEIPT',
-    'EXPENSE': 'EXPENSE',
-    'REPORT': 'REPORT',
-    'IMAGE': 'IMAGE',
-    'OTHER': 'OTHER',
-  };
-  return map[cat] || 'OTHER';
-};
+const { uploadToImageKit } = require('../services/imagekit.service');
 
 const uploadDocument = async (req, res, next) => {
   try {
@@ -27,23 +7,33 @@ const uploadDocument = async (req, res, next) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const { category, title, description, vendorId, labCaseId, expenseId, paymentId } = req.body;
+    const { category, title, description, vendorId, labCaseId, expenseId, paymentId, employeeId, laboratoryId, branch } = req.body;
 
-    // Build a public URL path from the multer saved path
-    const fileUrl = `/uploads/${path.basename(req.file.path)}`;
+    // Upload to ImageKit (cloud) — req.file.buffer from memoryStorage
+    const ikResult = await uploadToImageKit(
+      req.file.buffer,
+      req.file.originalname,
+      'dental-documents'
+    );
+
+    // Use the permanent ImageKit CDN URL
+    const fileUrl = ikResult.url;
 
     const document = await documentService.createDocument({
       fileName: req.file.originalname,
       fileUrl,
       fileType: req.file.mimetype,
       fileSizeKb: Math.round(req.file.size / 1024),
-      category: mapCategory(category),
+      category: category || 'General',
       title: title || req.file.originalname,
       description,
+      branch,
       vendorId,
       labCaseId,
       expenseId,
       paymentId,
+      employeeId,
+      laboratoryId,
     });
 
     res.status(201).json(document);

@@ -271,6 +271,14 @@ const deleteLeaveRequest = async (id) => {
   });
 };
 
+const deleteLeaveBalance = async (employeeId) => {
+  const eid = parseInt(employeeId);
+  const year = new Date().getFullYear();
+  return await prisma.leaveBalance.deleteMany({
+    where: { employeeId: eid, year }
+  });
+};
+
 module.exports = {
   applyLeave,
   updateLeaveStatus,
@@ -279,5 +287,6 @@ module.exports = {
   getEmployeeBalance,
   updateEmployeeBalances,
   runMonthlyAutoUpdate,
-  deleteLeaveRequest
+  deleteLeaveRequest,
+  deleteLeaveBalance
 };

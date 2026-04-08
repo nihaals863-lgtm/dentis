@@ -38,6 +38,7 @@ const createReminder = async (reminderData) => {
       branch: branch || 'All Branches',
       method: method || 'In-App',
       reminderType: 'GENERAL',
+      attachmentUrl: reminderData.attachmentUrl || null,
     },
   });
 };
@@ -54,7 +55,20 @@ const getReminders = async (userId, userRole) => {
 
   const manualReminders = await prisma.reminder.findMany({
     where: whereClause,
-    orderBy: { dueAt: 'asc' },
+    include: {
+      recipient: {
+        select: {
+          id: true,
+          employee: {
+            select: {
+              firstName: true,
+              lastName: true
+            }
+          }
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' },
   });
 
   if (isAdmin) {
@@ -88,14 +102,16 @@ const getReminders = async (userId, userRole) => {
               severity: daysLeft <= 15 ? 'critical' : 'warning',
               dueAt: check.date,
               branch: 'All Branches',
-              isSystem: true
+              isSystem: true,
+              createdAt: today // Mock createdAt for sorting
             });
           }
         }
       });
     });
 
-    return [...manualReminders, ...systemAlerts].sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
+    // Combine and sort by createdAt DESC to show newest first
+    return [...manualReminders, ...systemAlerts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
 
   return manualReminders;
@@ -176,7 +192,7 @@ const getActiveNotifications = async (userId, userRole) => {
 };
 
 const updateReminder = async (id, reminderData) => {
-  const { dueDate, notifyDate, type, description, branch, method, isRead } = reminderData;
+  const { dueDate, notifyDate, type, description, branch, method, isRead, employeeId } = reminderData;
   const updateData = {};
 
   const parseDate = (dateStr) => {
@@ -203,6 +219,19 @@ const updateReminder = async (id, reminderData) => {
   if (branch) updateData.branch = branch;
   if (method) updateData.method = method;
   if (isRead !== undefined) updateData.isRead = isRead;
+  if (reminderData.attachmentUrl !== undefined) updateData.attachmentUrl = reminderData.attachmentUrl;
+
+  if (employeeId !== undefined) {
+    if (employeeId && employeeId !== 'General') {
+      const employee = await prisma.employee.findUnique({
+        where: { id: parseInt(employeeId) },
+        select: { userId: true },
+      });
+      updateData.targetUserId = employee ? employee.userId : null;
+    } else {
+      updateData.targetUserId = null;
+    }
+  }
 
   return await prisma.reminder.update({
     where: { id: parseInt(id) },

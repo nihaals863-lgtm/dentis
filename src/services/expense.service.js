@@ -54,9 +54,24 @@ const updateExpense = async (id, expenseData) => {
   if (category) updateData.category = category;
   if (branch) updateData.branch = branch;
 
+  const currentExpense = await prisma.expense.findUnique({ where: { id: parseInt(id) } });
+
+  // Update amountPaid automatically based on paymentStatus changes
+  if (updateData.paymentStatus === 'PAID') {
+    const amt = updateData.amount !== undefined ? parseFloat(updateData.amount) : parseFloat(currentExpense.amount || 0);
+    updateData.amountPaid = amt;
+    updateData.status = 'PAID';
+  } else if (updateData.paymentStatus === 'PENDING' || updateData.paymentStatus === 'UNPAID') {
+    // Reset to 0 if we assume it's fully unpaid now (optional, safe default)
+    if (updateData.amountPaid === undefined) {
+      updateData.amountPaid = 0;
+      updateData.status = 'PENDING';
+      updateData.paymentStatus = 'PENDING';
+    }
+  }
+
   if (vendorId) {
     // Validate vendor belongs to category
-    const currentExpense = await prisma.expense.findUnique({ where: { id: parseInt(id) } });
     const targetCategory = category || currentExpense.category;
     const vendor = await prisma.vendor.findUnique({ where: { id: parseInt(vendorId) } });
     
