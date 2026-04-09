@@ -27,7 +27,7 @@ const getExpenseById = async (id) => {
 };
 
 const createExpense = async (expenseData) => {
-  const { vendorId, category, branch, ...data } = expenseData;
+  const { vendorId, category, branch, paymentStatus, status, ...data } = expenseData;
   
   // Validate vendor belongs to category
   const vendor = await prisma.vendor.findUnique({ where: { id: parseInt(vendorId) } });
@@ -35,14 +35,18 @@ const createExpense = async (expenseData) => {
     throw new Error('Selected vendor does not belong to the selected category');
   }
 
+  const isPaid = paymentStatus === 'PAID' || status === 'PAID';
+  const amountPaid = isPaid ? (parseFloat(data.amount) || 0) : 0;
+
   return await prisma.expense.create({
     data: {
       ...data,
       category,
       branch,
+      amountPaid,
       vendor: { connect: { id: parseInt(vendorId) } },
-      status: 'PENDING',
-      paymentStatus: 'PENDING'
+      status: isPaid ? 'PAID' : 'PENDING',
+      paymentStatus: isPaid ? 'PAID' : 'PENDING'
     },
   });
 };

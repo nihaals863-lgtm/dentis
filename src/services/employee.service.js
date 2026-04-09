@@ -111,6 +111,8 @@ const createEmployee = async (employeeData) => {
   });
 };
 
+const isValidDate = (val) => val && val !== 'N/A' && val !== '' && !isNaN(new Date(val).getTime());
+
 const updateEmployee = async (id, employeeData) => {
   const { 
     email, role, isActive,
@@ -127,7 +129,7 @@ const updateEmployee = async (id, employeeData) => {
 
     if (email || role || isActive !== undefined || endDate !== undefined) {
         const calculateIsActive = () => {
-          if (isActive !== undefined) return isActive; // Explicit override if provided
+          if (isActive !== undefined) return isActive;
           const targetEndDate = endDate !== undefined ? endDate : employee.endDate;
           return !targetEndDate || new Date(targetEndDate) >= new Date().setHours(0,0,0,0);
         };
@@ -151,24 +153,24 @@ const updateEmployee = async (id, employeeData) => {
       data: {
         ...(firstName && { firstName }),
         ...(lastName && { lastName }),
-        ...(phone && { phone }),
-        ...(dateOfBirth && { dateOfBirth: new Date(dateOfBirth) }),
+        ...(phone !== undefined && phone !== '' && { phone }),
+        ...(isValidDate(dateOfBirth) && { dateOfBirth: new Date(dateOfBirth) }),
         ...(gender && { gender }),
-        ...(address && { address }),
-        ...(nationalId && { nationalId }),
-        ...(profileImageUrl && { profileImageUrl }),
+        ...(address !== undefined && { address: address || null }),
+        ...(nationalId !== undefined && nationalId !== '' && { nationalId: nationalId || null }),
+        ...(profileImageUrl !== undefined && { profileImageUrl: profileImageUrl || null }),
         ...(jobTitle && { jobTitle }),
         ...(specialization && { specialization }),
         ...(licenseNumber && { licenseNumber }),
-        ...(licenseExpiry && { licenseExpiry: new Date(licenseExpiry) }),
-        ...(visaExpiry && { visaExpiry: new Date(visaExpiry) }),
-        ...(workPermitExpiry && { workPermitExpiry: new Date(workPermitExpiry) }),
+        ...(isValidDate(licenseExpiry) ? { licenseExpiry: new Date(licenseExpiry) } : licenseExpiry === '' ? { licenseExpiry: null } : {}),
+        ...(isValidDate(visaExpiry) ? { visaExpiry: new Date(visaExpiry) } : visaExpiry === '' ? { visaExpiry: null } : {}),
+        ...(isValidDate(workPermitExpiry) ? { workPermitExpiry: new Date(workPermitExpiry) } : workPermitExpiry === '' ? { workPermitExpiry: null } : {}),
         ...(employmentType && { employmentType }),
         ...(status && { status }),
-        ...(joiningDate && { joiningDate: new Date(joiningDate) }),
-        ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
-        ...(basicSalary && { basicSalary: parseFloat(basicSalary) }),
-        ...(notes && { notes }),
+        ...(isValidDate(joiningDate) && { joiningDate: new Date(joiningDate) }),
+        ...(endDate !== undefined && { endDate: isValidDate(endDate) ? new Date(endDate) : null }),
+        ...(basicSalary !== undefined && basicSalary !== '' && { basicSalary: parseFloat(basicSalary) || 0 }),
+        ...(notes !== undefined && { notes: notes || null }),
       },
       include: { user: true, documents: true },
     });

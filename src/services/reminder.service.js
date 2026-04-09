@@ -61,6 +61,7 @@ const getReminders = async (userId, userRole) => {
           id: true,
           employee: {
             select: {
+              id: true,
               firstName: true,
               lastName: true
             }
@@ -103,7 +104,8 @@ const getReminders = async (userId, userRole) => {
               dueAt: check.date,
               branch: 'All Branches',
               isSystem: true,
-              createdAt: today // Mock createdAt for sorting
+              employeeId: emp.id,
+              createdAt: today
             });
           }
         }
